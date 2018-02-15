@@ -19,6 +19,20 @@ def DrawImg(x, y, img):
 def IsValidPos(x, y):
     return Matriz[x][y] != 3 and Matriz[x][y] != 8
 
+def button(x, y, w, h, ac, ic, action, active, image):
+    mouse = pygame.mouse.get_pos()
+    pressed = pygame.mouse.get_pressed()
+    if not active:
+        pygame.draw.rect(Ventana, inactive, (x, y, w, h))
+    elif x+w > mouse[0] > x and y+h > mouse[1] > y:
+        pygame.draw.rect(Ventana, ac, (x, y, w, h))
+    else:
+        pygame.draw.rect(Ventana, ic, (x, y, w, h))
+    Ventana.blit(image, (x + SizeCasilla, y + SizeCasilla))
+
+def SetRunner():
+    print("Runner")
+
 pygame.init()
 
 #Tamaño de las Casillas
@@ -31,13 +45,17 @@ NX, NY = 35, 20
 InitPlane = SizeCasilla * 6
 
 #Variables
-StartGame = 1
+StartGame = 0
+SetRunner = 0
+SettingRunner = 0
+SetHouse = 1
+SettingHouse = 0
 RunnerPos = LastPos = (0, 0)
 NewPos = (0, 0)
 HousePos = (NX - 1, NY - 1)
-Difficulty = 50
+Difficulty = 0
 NumberBombs = 0
-TimeDelay = 250
+TimeDelay = 0
 
 #Linea Bresenham Inicial
 LineBresenham = list(bresenham(RunnerPos[0], RunnerPos[1], HousePos[0], HousePos[1]))
@@ -49,6 +67,9 @@ Size = (InitPlane + (SizeCasilla * NX), (NY * SizeCasilla))
 Background = (41, 128, 185)
 LineColor = (0, 0, 0)
 PanelColor = (255, 255, 255)
+ButtonIC = (0, 51, 204)
+ButtonAC = (26, 83, 255)
+inactive = (150, 150, 150)
 
 #Declaración de Ventana
 Ventana = pygame.display.set_mode(Size)
@@ -56,24 +77,16 @@ Ventana = pygame.display.set_mode(Size)
 #Matriz de Posiciones
 Matriz = [[0 for x in range(NY)] for y in range(NX)]
 Visitados = [[0 for x in range(NY)] for y in range(NX)]
-Matriz[HousePos[0]][HousePos[1]] = 2
+#Matriz[HousePos[0]][HousePos[1]] = 2
 
 #Imagenes
-print("Cargando ImgGreenflag")
 ImgGreenflag = pygame.image.load("img/Greenflag.png")
-print("Cargando Runner")
 ImgRunner = pygame.image.load("img/run.png")
-print("Cargando ImgHouse")
 ImgHouse = pygame.image.load("img/house.png")
-print("Cargando ImgBomb")
 ImgBomb = pygame.image.load("img/bomb.png")
-print("Cargando ImgRedFlag")
 ImgRedFlag = pygame.image.load("img/redflag.png")
-print("Cargando ImgYellowFlag")
 ImgYellowFlag = pygame.image.load("img/Yellowflag.png")
-print("Cargando ImgWhiteFlag")
 ImgWhiteFlag = pygame.image.load("img/Whiteflag.png")
-print("Cargando ImgOrangeFlag")
 ImgOrangeFlag = pygame.image.load("img/Orangeflag.png")
 
 ImgRunner = pygame.transform.scale(ImgRunner, (SizeCasilla, SizeCasilla))
@@ -117,6 +130,12 @@ while True:
     #Colocar Panel de Configuración
     pygame.draw.rect(Ventana, PanelColor, (0, 0, InitPlane, (NY * SizeCasilla)))
 
+    #Colocar Botones
+    button(45, 10, 90, 90, ButtonAC, ButtonIC, SetRunner, not SetRunner, ImgRunner)
+    button(45, 110, 90, 90, ButtonAC, ButtonIC, SetRunner, not SetHouse, ImgHouse)
+    #button(45, 45, 135, 90, ButtonAC, ButtonIC, New, True)
+
+
     for x in range(NX):
         for y in range(NY):
             if Matriz[x][y] != 0:
@@ -127,11 +146,8 @@ while True:
 
         if len(LineBresenham) == 0:
             StartGame = 0
-        TimeDelay = 500
-        if not IsValidPos(NewPos[0], NewPos[1]):
-            # print("Posicion Invalida")
-            # print(NewPos)
 
+        if not IsValidPos(NewPos[0], NewPos[1]):
             #Matriz Posiciones Validas
             ValidPos = [1, 1, 1],[1, 0, 1],[1, 1, 1]
             ValidPos[(NewPos[0] - RunnerPos[0]) + 1][(NewPos[1] - RunnerPos[1]) + 1] = 0
@@ -140,56 +156,37 @@ while True:
             UnvalidCounter = 2
             Valid = 0
             while not Valid:
-                # print("\n\nMatriz Validos")
-                # for i in ValidPos:
-                #     print(i)
-                #
-                # TimeDelay = 10000
-
+                #Generar Posición Aleatoria
                 RandomPos = (randint(-1, 1), randint(-1, 1))
-                print(RunnerPos[0] + RandomPos[0])
-                print(RunnerPos[1] + RandomPos[1])
                 NewPos = (RunnerPos[0] + RandomPos[0], RunnerPos[1] + RandomPos[1])
 
-                # print("RandomPos: ")
-                # print(RandomPos)
-                # print("NewPos: ")
-                # print(NewPos)
-
                 #Regresar Posición Anterior y Colocar Banderin
-                if RandomPos == LastPos and UnvalidCounter == 8:
+                if NewPos == LastPos and UnvalidCounter == 8:
                     # print("Regresar Posicion Anterior")
-                    Matriz[NewPos[0]][NewPos[1]] = 8
+                    Visitados[RunnerPos[0]][RunnerPos[1]] = 10
+                    Matriz[RunnerPos[0]][RunnerPos[1]] = 8
                     NewPos = LastPos
+                    LineBresenham = list(bresenham(NewPos[0], NewPos[1], HousePos[0], HousePos[1]))
                     Valid = 1
 
                 #Invalidar Fuera de Rangos
                 elif NewPos[0] < 0 or NewPos[0] >= NX or NewPos[1] < 0 or NewPos[1] >= NY :
                     if ValidPos[RandomPos[0] + 1][RandomPos[1] + 1] == 1:
-                        # print("Posicion Fuera de Rango")
                         ValidPos[RandomPos[0] + 1][RandomPos[1] + 1] = 0
                         UnvalidCounter += 1
 
                 #Invalidar Casilla Invalidas por Objeto
-                elif ValidPos[RandomPos[0] + 1][RandomPos[1] + 1] == 1 and not IsValidPos(NewPos[0], NewPos[1]):
-                    # print("Objeto en Posicion")
-                    ValidPos[RandomPos[0]][RandomPos[1]] == 0
-                    UnvalidCounter += 1
+                elif ValidPos[RandomPos[0] + 1][RandomPos[1] + 1] == 1 and NewPos != LastPos:
+                    if IsValidPos(NewPos[0], NewPos[1]):
+                        LineBresenham = list(bresenham(NewPos[0], NewPos[1], HousePos[0], HousePos[1]))
+                        Valid = 1
+                    else:
+                        ValidPos[RandomPos[0] + 1][RandomPos[1] + 1] = 0
+                        UnvalidCounter += 1
 
-                elif ValidPos[RandomPos[0] + 1][RandomPos[1] + 1] == 1 and IsValidPos(NewPos[0], NewPos[1]):
-                    # print("Posicion Valida, Nueva Linea")
-                    LineBresenham = list(bresenham(NewPos[0], NewPos[1], HousePos[0], HousePos[1]))
-                    Valid = 1
 
                 #Game Over
                 if UnvalidCounter == 9:
-                    print("Game Over")
-                    print("\n\nMatriz Validos")
-                    for i in ValidPos:
-                        print(i)
-
-                    print("UnvalidCounter: " + str(UnvalidCounter))
-
                     NewPos = RunnerPos
                     Valid = 1
                     StartGame = 0
@@ -199,9 +196,11 @@ while True:
         RunnerPos = NewPos
         Visitados[RunnerPos[0]][RunnerPos[1]] += 1
 
-        if Visitados[LastPos[0]][LastPos[1]] > 3 and Visitados[LastPos[0]][LastPos[1]] < 9:
-            Matriz[LastPos[0]][LastPos[1]] = Visitados[LastPos[0]][LastPos[1]]
-            # print("Banderin " + str(Matriz[RunnerPos[0]][RunnerPos[1]]))
+        if Visitados[LastPos[0]][LastPos[1]] > 3:
+            if Visitados[LastPos[0]][LastPos[1]] < 9:
+                Matriz[LastPos[0]][LastPos[1]] = Visitados[LastPos[0]][LastPos[1]]
+            else:
+                Matriz[LastPos[0]][LastPos[1]] = 8
         else:
             Matriz[LastPos[0]][LastPos[1]] = 0
 
@@ -212,10 +211,5 @@ while True:
             pygame.quit()
             sys.exit()
 
-    # for i in range(10):
-    #     print("\n")
-    #
-    # for i in Matriz:
-    #     print(i)
     pygame.display.update()
     pygame.time.delay(TimeDelay)
