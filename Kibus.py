@@ -3,36 +3,6 @@ from pygame.locals import *
 from bresenham import bresenham
 from random import randint
 
-def SetDifficulty(Dif):
-    NumberBombs = 0
-    while NumberBombs < int(((NX * NY) * Difficulty / 100)):
-        BX, BY = randint(0, NX - 1), randint(0, NY - 1)
-        if Matriz[BX][BY] != 1 and Matriz[BX][BY] != 2:
-            Matriz[BX][BY] = 3
-            NumberBombs+= 1
-
-def DrawImg(x, y, img):
-    DX = InitPlane + (x * SizeCasilla)
-    DY = y * SizeCasilla
-    Ventana.blit(img, (DX, DY))
-
-def IsValidPos(x, y):
-    return Matriz[x][y] != 3 and Matriz[x][y] != 8
-
-def button(x, y, w, h, ac, ic, action, active, image):
-    mouse = pygame.mouse.get_pos()
-    pressed = pygame.mouse.get_pressed()
-    if not active:
-        pygame.draw.rect(Ventana, inactive, (x, y, w, h))
-    elif x+w > mouse[0] > x and y+h > mouse[1] > y:
-        pygame.draw.rect(Ventana, ac, (x, y, w, h))
-    else:
-        pygame.draw.rect(Ventana, ic, (x, y, w, h))
-    Ventana.blit(image, (x + SizeCasilla, y + SizeCasilla))
-
-def SetRunner():
-    print("Runner")
-
 pygame.init()
 
 #Tamaño de las Casillas
@@ -46,7 +16,7 @@ InitPlane = SizeCasilla * 6
 
 #Variables
 StartGame = 0
-SetRunner = 0
+SetRunner = 1
 SettingRunner = 0
 SetHouse = 1
 SettingHouse = 0
@@ -110,7 +80,61 @@ Objects = {
             8 : ImgRedFlag
 }
 
-SetDifficulty(Difficulty)
+#Functions
+def SetDifficulty(Dif):
+    NumberBombs = 0
+    while NumberBombs < int(((NX * NY) * Difficulty / 100)):
+        BX, BY = randint(0, NX - 1), randint(0, NY - 1)
+        if Matriz[BX][BY] != 1 and Matriz[BX][BY] != 2:
+            Matriz[BX][BY] = 3
+            NumberBombs+= 1
+
+def DrawImg(x, y, img):
+    DX = InitPlane + (x * SizeCasilla)
+    DY = y * SizeCasilla
+    Ventana.blit(img, (DX, DY))
+
+def IsValidPos(x, y):
+    return Matriz[x][y] != 3 and Matriz[x][y] != 8
+
+def button(x, y, w, h, ac, ic, active, image, ban):
+    mouse = pygame.mouse.get_pos()
+    pressed = pygame.mouse.get_pressed()
+    if not active:
+        pygame.draw.rect(Ventana, inactive, (x, y, w, h))
+
+    elif x+w > mouse[0] > x and y+h > mouse[1] > y:
+        pygame.draw.rect(Ventana, ac, (x, y, w, h))
+        if pressed[0] == 1 and active:
+            return 0, 1
+    else:
+        pygame.draw.rect(Ventana, ic, (x, y, w, h))
+    Ventana.blit(image, (x + SizeCasilla, y + SizeCasilla))
+    return active, ban
+
+def SetRun():
+    print("Runner")
+
+# def PutRunner():
+#     print("Before Put Runner")
+#     print(SetRunner)
+#     print(SettingRunner)
+#     print(SetHouse)
+#     SetRunner = 0
+#     SettingRunner = 1
+#     SetHouse = 0
+#     print("After Put Runner")
+#     print(SetRunner)
+#     print(SettingRunner)
+#     print(SetHouse)
+
+def IsSettingObject(Setting, image):
+    #print(Setting)
+    if Setting:
+        mouse = pygame.mouse.get_pos()
+        pressed = pygame.mouse.get_pressed()
+        if mouse[0] > InitPlane:
+            Ventana.blit(image, (mouse[0] - (SizeCasilla / 2), mouse[1] - (SizeCasilla / 2)))
 
 while True:
     Ventana.fill(Background)
@@ -131,10 +155,29 @@ while True:
     pygame.draw.rect(Ventana, PanelColor, (0, 0, InitPlane, (NY * SizeCasilla)))
 
     #Colocar Botones
-    button(45, 10, 90, 90, ButtonAC, ButtonIC, SetRunner, not SetRunner, ImgRunner)
-    button(45, 110, 90, 90, ButtonAC, ButtonIC, SetRunner, not SetHouse, ImgHouse)
+    #Configurar Runner
+    x, y = 45, 10
+    w, h = 90, 90
+    mouse = pygame.mouse.get_pos()
+    pressed = pygame.mouse.get_pressed()
+    if not SetRunner:
+        pygame.draw.rect(Ventana, inactive, (x, y, w, h))
+    elif x+w > mouse[0] > x and y+h > mouse[1] > y:
+        pygame.draw.rect(Ventana, ButtonAC, (x, y, w, h))
+        if pressed[0] == 1:
+            SettingRunner = 1
+            SetRunner = 0
+    else:
+        pygame.draw.rect(Ventana, ButtonIC, (x, y, w, h))
+    Ventana.blit(ImgRunner, (x + SizeCasilla, y + SizeCasilla))
+
+    print("SetRunner: " + str(SetRunner) + " SettingRunner: " + str(SettingRunner))
+    SetRunner, SettingRunner = button(45, 10, 90, 90, ButtonAC, ButtonIC, SetRunner, ImgRunner, SettingRunner)
+    #button(45, 110, 90, 90, ButtonAC, ButtonIC, SetRunner, not SetHouse, ImgHouse)
     #button(45, 45, 135, 90, ButtonAC, ButtonIC, New, True)
 
+    IsSettingObject(SettingRunner, ImgRunner)
+    IsSettingObject(SettingHouse, ImgHouse)
 
     for x in range(NX):
         for y in range(NY):
