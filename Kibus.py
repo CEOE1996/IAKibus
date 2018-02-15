@@ -16,19 +16,26 @@ InitPlane = SizeCasilla * 6
 
 #Variables
 StartGame = 0
+
 SetRunner = 1
 SettingRunner = 0
+RunnerSet = 0
+
 SetHouse = 0
 SettingHouse = 0
+HouseSet = 0
+
 RunnerPos = LastPos = (0, 0)
 NewPos = (0, 0)
-HousePos = (NX - 1, NY - 1)
-Difficulty = 0
-NumberBombs = 0
-TimeDelay = 0
+HousePos = (0, 0)
 
-#Linea Bresenham Inicial
-LineBresenham = list(bresenham(RunnerPos[0], RunnerPos[1], HousePos[0], HousePos[1]))
+Difficulty = 0
+SettingDifficulty = 0
+NumberBombs = 0
+DifficultyBarIn = DifficultyBar = 230
+DifficultyBarFin = 470
+
+TimeDelay = 0
 
 #Tamaño Ventana Incluyendo Panel de Configuración y Tablero
 Size = (InitPlane + (SizeCasilla * NX), (NY * SizeCasilla))
@@ -40,6 +47,7 @@ PanelColor = (255, 255, 255)
 ButtonIC = (0, 51, 204)
 ButtonAC = (26, 83, 255)
 inactive = (150, 150, 150)
+SlidebarColor = (200, 200, 200)
 
 #Declaración de Ventana
 Ventana = pygame.display.set_mode(Size)
@@ -50,7 +58,6 @@ Visitados = [[0 for x in range(NY)] for y in range(NX)]
 #Matriz[HousePos[0]][HousePos[1]] = 2
 
 #Imagenes
-ImgGreenflag = pygame.image.load("img/Greenflag.png")
 ImgRunner = pygame.image.load("img/run.png")
 ImgHouse = pygame.image.load("img/house.png")
 ImgBomb = pygame.image.load("img/bomb.png")
@@ -58,6 +65,8 @@ ImgRedFlag = pygame.image.load("img/redflag.png")
 ImgYellowFlag = pygame.image.load("img/Yellowflag.png")
 ImgWhiteFlag = pygame.image.load("img/Whiteflag.png")
 ImgOrangeFlag = pygame.image.load("img/Orangeflag.png")
+ImgGreenflag = pygame.image.load("img/Greenflag.png")
+ImgPlay = pygame.image.load("img/play.png")
 
 ImgRunner = pygame.transform.scale(ImgRunner, (SizeCasilla, SizeCasilla))
 ImgHouse = pygame.transform.scale(ImgHouse, (SizeCasilla, SizeCasilla))
@@ -67,6 +76,7 @@ ImgYellowFlag = pygame.transform.scale(ImgYellowFlag, (SizeCasilla, SizeCasilla)
 ImgWhiteFlag = pygame.transform.scale(ImgWhiteFlag, (SizeCasilla, SizeCasilla))
 ImgOrangeFlag = pygame.transform.scale(ImgOrangeFlag, (SizeCasilla, SizeCasilla))
 ImgGreenflag = pygame.transform.scale(ImgGreenflag, (SizeCasilla, SizeCasilla))
+ImgPlay = pygame.transform.scale(ImgPlay, (SizeCasilla, SizeCasilla))
 
 #Objects
 Objects = {
@@ -81,13 +91,22 @@ Objects = {
 }
 
 #Functions
-def SetDifficulty(Dif):
+def SetDifficulty(Dif, m):
     NumberBombs = 0
-    while NumberBombs < int(((NX * NY) * Difficulty / 100)):
-        BX, BY = randint(0, NX - 1), randint(0, NY - 1)
-        if Matriz[BX][BY] != 1 and Matriz[BX][BY] != 2:
-            Matriz[BX][BY] = 3
-            NumberBombs+= 1
+    if Dif != Difficulty:
+        for i in range(NX):
+            for j in range(NY):
+                if m[i][j] == 3:
+                    m[i][j] = 0
+
+        while NumberBombs < int(((NX * NY) * Dif / 100)):
+            BX, BY = randint(0, NX - 1), randint(0, NY - 1)
+            if m[BX][BY] == 0:
+                m[BX][BY] = 3
+                NumberBombs+= 1
+        print("Bombs: " + str(NumberBombs))
+        return Dif, m
+    return Difficulty, m
 
 def DrawImg(x, y, img):
     DX = InitPlane + (x * SizeCasilla)
@@ -112,8 +131,25 @@ def button(x, y, w, h, ac, ic, active, image, ban):
     Ventana.blit(image, (x + SizeCasilla, y + SizeCasilla))
     return active, ban
 
-def SetRun():
-    print("Runner")
+def SlideBarButton(x, y, w, h, ac, ic, active, m):
+    ny = y - (h / 2)
+    mouse = pygame.mouse.get_pos()
+    pressed = pygame.mouse.get_pressed()
+    d = Difficulty
+    if not active:
+        pygame.draw.rect(Ventana, inactive, (x, ny, w, h))
+    elif x+w > mouse[0] > x and ny+h > mouse[1] > ny:
+        pygame.draw.rect(Ventana, ac, (x, ny, w, h))
+        if pressed[0] == 1 and active:
+            if DifficultyBarFin > mouse[1] > DifficultyBarIn:
+                DiffPercentage = round(((mouse[1] - DifficultyBarIn) * 80) / (DifficultyBarFin - DifficultyBarIn))
+                if DiffPercentage % 10 == 0:
+                    print(DiffPercentage)
+                    d, m = SetDifficulty(DiffPercentage, m)
+                return mouse[1], d, m
+    else:
+        pygame.draw.rect(Ventana, ic, (x, ny, w, h))
+    return y, d, m
 
 def IsSettingObject(Setting, ban, image):
     #print(Setting)
@@ -123,14 +159,15 @@ def IsSettingObject(Setting, ban, image):
         if mouse[0] > InitPlane:
             Ventana.blit(image, (mouse[0] - (SizeCasilla / 2), mouse[1] - (SizeCasilla / 2)))
             if pressed[0] == 1:
-                return not Setting, not ban, int((mouse[0] - InitPlane) / SizeCasilla), int((mouse[1]) / SizeCasilla)
-    return Setting, ban, -1, -1
-
-for i in Matriz:
-    print(i)
+                return not Setting, 1, int((mouse[0] - InitPlane) / SizeCasilla), int((mouse[1]) / SizeCasilla)
+    return Setting, 0, -1, -1
 
 #Inicia Juego
 while True:
+    # print("\n\n\n\n")
+    # for i in Matriz:
+    #     print(i)
+
     Ventana.fill(Background)
 
     #Dibujar Lineas del Tablero en X
@@ -151,25 +188,40 @@ while True:
     #Colocar Botones
     SetRunner, SettingRunner = button(45, 10, 90, 90, ButtonAC, ButtonIC, SetRunner, ImgRunner, SettingRunner)
     SetHouse, SettingHouse = button(45, 110, 90, 90, ButtonAC, ButtonIC, SetHouse, ImgHouse, SettingHouse)
-    #button(45, 45, 135, 90, ButtonAC, ButtonIC, New, True)
+    SettingDifficulty, StartGame = button(45, 500, 90, 90, ButtonAC, ButtonIC, SettingDifficulty, ImgPlay, StartGame)
 
-    SettingRunner, SetHouse, x, y = IsSettingObject(SettingRunner, SetHouse, ImgRunner)
-    if not SettingRunner:
+    SettingRunner, RunnerSet, x, y = IsSettingObject(SettingRunner, SetHouse, ImgRunner)
+    if RunnerSet and not SettingRunner:
         RunnerPos = (x, y)
         Matriz[x][y] = 1
+        SetHouse = 1
 
-    SettingHouse, z, x, y = IsSettingObject(SettingHouse, 0, ImgHouse)
-    if not SettingHouse:
+    SettingHouse, HouseSet, x, y = IsSettingObject(SettingHouse, 0, ImgHouse)
+    if HouseSet and not SettingHouse:
         HousePos = (x, y)
         Matriz[x][y] = 2
+        LineBresenham = list(bresenham(RunnerPos[0], RunnerPos[1], HousePos[0], HousePos[1]))
+        SettingDifficulty = 1
+
+    #Slidebar Dificultad
+    pygame.draw.line(Ventana, SlidebarColor, (90, DifficultyBarIn), (90, DifficultyBarFin), 2)
+
+    l = DifficultyBarIn
+    for i in range(7):
+        l += 30
+        pygame.draw.line(Ventana, SlidebarColor, (80, l), (100, l), 2)
+
+    DifficultyBar, Difficulty, Matriz = SlideBarButton(75, DifficultyBar, 30, 12, ButtonAC, ButtonIC, SettingDifficulty, Matriz)
 
     for x in range(NX):
         for y in range(NY):
             if Matriz[x][y] != 0:
-                print(x, y)
+                #print(x, y)
                 DrawImg(x, y, Objects[Matriz[x][y]])
 
     if StartGame == 1:
+        TimeDelay = 250
+
         NewPos = LineBresenham.pop(0)
 
         if len(LineBresenham) == 0:
