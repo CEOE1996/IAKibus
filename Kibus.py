@@ -18,7 +18,7 @@ InitPlane = SizeCasilla * 6
 StartGame = 0
 SetRunner = 1
 SettingRunner = 0
-SetHouse = 1
+SetHouse = 0
 SettingHouse = 0
 RunnerPos = LastPos = (0, 0)
 NewPos = (0, 0)
@@ -106,7 +106,7 @@ def button(x, y, w, h, ac, ic, active, image, ban):
     elif x+w > mouse[0] > x and y+h > mouse[1] > y:
         pygame.draw.rect(Ventana, ac, (x, y, w, h))
         if pressed[0] == 1 and active:
-            return 0, 1
+            return not active, not ban
     else:
         pygame.draw.rect(Ventana, ic, (x, y, w, h))
     Ventana.blit(image, (x + SizeCasilla, y + SizeCasilla))
@@ -115,27 +115,21 @@ def button(x, y, w, h, ac, ic, active, image, ban):
 def SetRun():
     print("Runner")
 
-# def PutRunner():
-#     print("Before Put Runner")
-#     print(SetRunner)
-#     print(SettingRunner)
-#     print(SetHouse)
-#     SetRunner = 0
-#     SettingRunner = 1
-#     SetHouse = 0
-#     print("After Put Runner")
-#     print(SetRunner)
-#     print(SettingRunner)
-#     print(SetHouse)
-
-def IsSettingObject(Setting, image):
+def IsSettingObject(Setting, ban, image):
     #print(Setting)
     if Setting:
         mouse = pygame.mouse.get_pos()
         pressed = pygame.mouse.get_pressed()
         if mouse[0] > InitPlane:
             Ventana.blit(image, (mouse[0] - (SizeCasilla / 2), mouse[1] - (SizeCasilla / 2)))
+            if pressed[0] == 1:
+                return not Setting, not ban, int((mouse[0] - InitPlane) / SizeCasilla), int((mouse[1]) / SizeCasilla)
+    return Setting, ban, -1, -1
 
+for i in Matriz:
+    print(i)
+
+#Inicia Juego
 while True:
     Ventana.fill(Background)
 
@@ -155,33 +149,24 @@ while True:
     pygame.draw.rect(Ventana, PanelColor, (0, 0, InitPlane, (NY * SizeCasilla)))
 
     #Colocar Botones
-    #Configurar Runner
-    x, y = 45, 10
-    w, h = 90, 90
-    mouse = pygame.mouse.get_pos()
-    pressed = pygame.mouse.get_pressed()
-    if not SetRunner:
-        pygame.draw.rect(Ventana, inactive, (x, y, w, h))
-    elif x+w > mouse[0] > x and y+h > mouse[1] > y:
-        pygame.draw.rect(Ventana, ButtonAC, (x, y, w, h))
-        if pressed[0] == 1:
-            SettingRunner = 1
-            SetRunner = 0
-    else:
-        pygame.draw.rect(Ventana, ButtonIC, (x, y, w, h))
-    Ventana.blit(ImgRunner, (x + SizeCasilla, y + SizeCasilla))
-
-    print("SetRunner: " + str(SetRunner) + " SettingRunner: " + str(SettingRunner))
     SetRunner, SettingRunner = button(45, 10, 90, 90, ButtonAC, ButtonIC, SetRunner, ImgRunner, SettingRunner)
-    #button(45, 110, 90, 90, ButtonAC, ButtonIC, SetRunner, not SetHouse, ImgHouse)
+    SetHouse, SettingHouse = button(45, 110, 90, 90, ButtonAC, ButtonIC, SetHouse, ImgHouse, SettingHouse)
     #button(45, 45, 135, 90, ButtonAC, ButtonIC, New, True)
 
-    IsSettingObject(SettingRunner, ImgRunner)
-    IsSettingObject(SettingHouse, ImgHouse)
+    SettingRunner, SetHouse, x, y = IsSettingObject(SettingRunner, SetHouse, ImgRunner)
+    if not SettingRunner:
+        RunnerPos = (x, y)
+        Matriz[x][y] = 1
+
+    SettingHouse, z, x, y = IsSettingObject(SettingHouse, 0, ImgHouse)
+    if not SettingHouse:
+        HousePos = (x, y)
+        Matriz[x][y] = 2
 
     for x in range(NX):
         for y in range(NY):
             if Matriz[x][y] != 0:
+                print(x, y)
                 DrawImg(x, y, Objects[Matriz[x][y]])
 
     if StartGame == 1:
