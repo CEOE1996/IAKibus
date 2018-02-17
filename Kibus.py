@@ -1,4 +1,10 @@
-import pygame, sys
+'''
+Created By Carlos Orozco
+Date: 2018-02-14
+URL: https://github.com/CEOE1996
+'''
+
+﻿import pygame, sys
 from pygame.locals import *
 from bresenham import bresenham
 from random import randint
@@ -25,13 +31,13 @@ SetHouse = 0
 SettingHouse = 0
 HouseSet = 0
 
-RunnerPos = LastPos = (0, 0)
-NewPos = (0, 0)
-HousePos = (0, 0)
+HousePos = NewPos = RunnerPos = LastPos = (0, 0)
 
 Difficulty = 0
 SettingDifficulty = 0
+
 NumberBombs = 0
+
 DifficultyBarIn = DifficultyBar = 230
 DifficultyBarFin = 470
 
@@ -49,16 +55,12 @@ ButtonAC = (26, 83, 255)
 inactive = (150, 150, 150)
 SlidebarColor = (200, 200, 200)
 
-#Declaración de Ventana
-Ventana = pygame.display.set_mode(Size)
-
 #Matriz de Posiciones
 Matriz = [[0 for x in range(NY)] for y in range(NX)]
 Visitados = [[0 for x in range(NY)] for y in range(NX)]
-#Matriz[HousePos[0]][HousePos[1]] = 2
 
 #Imagenes
-ImgRunner = pygame.image.load("img/run.png")
+ImgRunner = pygame.image.load("img/run3.png")
 ImgHouse = pygame.image.load("img/house.png")
 ImgBomb = pygame.image.load("img/bomb.png")
 ImgRedFlag = pygame.image.load("img/redflag.png")
@@ -77,6 +79,12 @@ ImgWhiteFlag = pygame.transform.scale(ImgWhiteFlag, (SizeCasilla, SizeCasilla))
 ImgOrangeFlag = pygame.transform.scale(ImgOrangeFlag, (SizeCasilla, SizeCasilla))
 ImgGreenflag = pygame.transform.scale(ImgGreenflag, (SizeCasilla, SizeCasilla))
 ImgPlay = pygame.transform.scale(ImgPlay, (SizeCasilla, SizeCasilla))
+
+
+#Declaración de Ventana
+Ventana = pygame.display.set_mode(Size)
+pygame.display.set_caption("Kibus")
+pygame.display.set_icon(ImgRunner)
 
 #Objects
 Objects = {
@@ -104,7 +112,6 @@ def SetDifficulty(Dif, m):
             if m[BX][BY] == 0:
                 m[BX][BY] = 3
                 NumberBombs+= 1
-        print("Bombs: " + str(NumberBombs))
         return Dif, m
     return Difficulty, m
 
@@ -144,7 +151,6 @@ def SlideBarButton(x, y, w, h, ac, ic, active, m):
             if DifficultyBarFin > mouse[1] > DifficultyBarIn:
                 DiffPercentage = round(((mouse[1] - DifficultyBarIn) * 80) / (DifficultyBarFin - DifficultyBarIn))
                 if DiffPercentage % 10 == 0:
-                    print(DiffPercentage)
                     d, m = SetDifficulty(DiffPercentage, m)
                 return mouse[1], d, m
     else:
@@ -164,9 +170,6 @@ def IsSettingObject(Setting, ban, image):
 
 #Inicia Juego
 while True:
-    # print("\n\n\n\n")
-    # for i in Matriz:
-    #     print(i)
 
     Ventana.fill(Background)
 
@@ -190,12 +193,14 @@ while True:
     SetHouse, SettingHouse = button(45, 110, 90, 90, ButtonAC, ButtonIC, SetHouse, ImgHouse, SettingHouse)
     SettingDifficulty, StartGame = button(45, 500, 90, 90, ButtonAC, ButtonIC, SettingDifficulty, ImgPlay, StartGame)
 
+    #Colocar Corredor
     SettingRunner, RunnerSet, x, y = IsSettingObject(SettingRunner, SetHouse, ImgRunner)
     if RunnerSet and not SettingRunner:
         RunnerPos = (x, y)
         Matriz[x][y] = 1
         SetHouse = 1
 
+    #Colocar Casa
     SettingHouse, HouseSet, x, y = IsSettingObject(SettingHouse, 0, ImgHouse)
     if HouseSet and not SettingHouse:
         HousePos = (x, y)
@@ -205,18 +210,18 @@ while True:
 
     #Slidebar Dificultad
     pygame.draw.line(Ventana, SlidebarColor, (90, DifficultyBarIn), (90, DifficultyBarFin), 2)
-
     l = DifficultyBarIn
     for i in range(7):
         l += 30
         pygame.draw.line(Ventana, SlidebarColor, (80, l), (100, l), 2)
 
+    #Configurar Dificultad
     DifficultyBar, Difficulty, Matriz = SlideBarButton(75, DifficultyBar, 30, 12, ButtonAC, ButtonIC, SettingDifficulty, Matriz)
 
+    #Colocar Objetos de Matriz
     for x in range(NX):
         for y in range(NY):
             if Matriz[x][y] != 0:
-                #print(x, y)
                 DrawImg(x, y, Objects[Matriz[x][y]])
 
     if StartGame == 1:
@@ -242,7 +247,6 @@ while True:
 
                 #Regresar Posición Anterior y Colocar Banderin
                 if NewPos == LastPos and UnvalidCounter == 8:
-                    # print("Regresar Posicion Anterior")
                     Visitados[RunnerPos[0]][RunnerPos[1]] = 10
                     Matriz[RunnerPos[0]][RunnerPos[1]] = 8
                     NewPos = LastPos
@@ -255,15 +259,15 @@ while True:
                         ValidPos[RandomPos[0] + 1][RandomPos[1] + 1] = 0
                         UnvalidCounter += 1
 
-                #Invalidar Casilla Invalidas por Objeto
                 elif ValidPos[RandomPos[0] + 1][RandomPos[1] + 1] == 1 and NewPos != LastPos:
+                    #Nueva Posición, Trazar Linea Bresenham
                     if IsValidPos(NewPos[0], NewPos[1]):
                         LineBresenham = list(bresenham(NewPos[0], NewPos[1], HousePos[0], HousePos[1]))
                         Valid = 1
+                    #Invalidar Casilla Invalidas por Objeto
                     else:
                         ValidPos[RandomPos[0] + 1][RandomPos[1] + 1] = 0
                         UnvalidCounter += 1
-
 
                 #Game Over
                 if UnvalidCounter == 9:
@@ -271,11 +275,12 @@ while True:
                     Valid = 1
                     StartGame = 0
 
-
+        #Asignar Nuevas Posiciones
         LastPos = RunnerPos
         RunnerPos = NewPos
         Visitados[RunnerPos[0]][RunnerPos[1]] += 1
 
+        #Dibujar Banderines o Limpiar Casilla
         if Visitados[LastPos[0]][LastPos[1]] > 3:
             if Visitados[LastPos[0]][LastPos[1]] < 9:
                 Matriz[LastPos[0]][LastPos[1]] = Visitados[LastPos[0]][LastPos[1]]
@@ -287,6 +292,7 @@ while True:
         Matriz[RunnerPos[0]][RunnerPos[1]] = 1
 
     for evento in pygame.event.get():
+        print(evento)
         if evento.type == QUIT:
             pygame.quit()
             sys.exit()
